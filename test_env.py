@@ -93,6 +93,7 @@ def test_connection():
                 check_table = os.getenv('CHECK_TABLE_NAME')
                 if check_table:
                     schema = os.getenv('CHECK_TABLE_SCHEMA') or os.getenv('DB_NAME')
+                    print(f"Table check enabled. CHECK_TABLE_NAME='{check_table}', schema='{schema}'")
                     try:
                         cursor.execute(
                             """
@@ -118,6 +119,8 @@ def test_connection():
                             "Database Warning: Table Check Error",
                             f"Failed to verify table '{check_table}' existence due to error: {e}"
                         )
+                else:
+                    print("Table check skipped: CHECK_TABLE_NAME not set.")
                 # Optional: send success email if explicitly requested via env flag
                 if os.getenv('SEND_SUCCESS_EMAIL') == '1':
                     send_alert_email(
