@@ -15,15 +15,26 @@ load_dotenv()
 def create_db_connection():
     """Create and return a database connection using environment variables."""
     try:
-        connection = mysql.connector.connect(
+        ca = os.getenv('DB_SSL_CA')
+        conn_kwargs = dict(
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD'),
             host=os.getenv('DB_HOST'),
             port=int(os.getenv('DB_PORT', '3306')),
             database=os.getenv('DB_NAME'),
-            ssl_ca=os.getenv('DB_SSL_CA'),
-            ssl_verify_cert=True
         )
+        # If a CA path is provided, enable SSL verification; otherwise, disable SSL for easier connectivity
+        if ca:
+            conn_kwargs.update(
+                ssl_ca=ca,
+                ssl_verify_cert=True,
+                ssl_verify_identity=True,
+            )
+        else:
+            # Disable SSL when no CA is provided (useful for quick testing/troubleshooting)
+            conn_kwargs.update(ssl_disabled=True)
+
+        connection = mysql.connector.connect(**conn_kwargs)
         return connection
     except Error as e:
         print(f"Error connecting to database: {e}")
