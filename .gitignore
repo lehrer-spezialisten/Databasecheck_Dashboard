@@ -9,7 +9,6 @@
 *.key
 
 # Ignore test environment files with credentials
-test_env.py
 test_env_new.py
 
 # Local development configuration
