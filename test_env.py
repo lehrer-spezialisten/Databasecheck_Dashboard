@@ -89,6 +89,35 @@ def test_connection():
                 cursor.execute("SELECT DATABASE();")
                 db_info = cursor.fetchone()
                 print(f"✅ Successfully connected to database: {db_info[0]}")
+                # Optional: check for a specific table and alert if missing
+                check_table = os.getenv('CHECK_TABLE_NAME')
+                if check_table:
+                    schema = os.getenv('CHECK_TABLE_SCHEMA') or os.getenv('DB_NAME')
+                    try:
+                        cursor.execute(
+                            """
+                            SELECT COUNT(*) FROM information_schema.tables
+                            WHERE table_schema = %s AND table_name = %s
+                            """,
+                            (schema, check_table)
+                        )
+                        exists = cursor.fetchone()[0] > 0
+                        if not exists:
+                            subject = "Database Warning: Table Missing"
+                            body = (
+                                f"The table '{check_table}' was NOT found in schema '{schema}'.\n"
+                                f"Host: {os.getenv('DB_HOST')}\nDB: {os.getenv('DB_NAME')}\n"
+                            )
+                            send_alert_email(subject, body)
+                            print(f"⚠️ Table '{check_table}' not found in schema '{schema}'. Alert sent.")
+                        else:
+                            print(f"✅ Table '{check_table}' exists in schema '{schema}'.")
+                    except Exception as e:
+                        print(f"❌ Failed to verify table existence: {e}")
+                        send_alert_email(
+                            "Database Warning: Table Check Error",
+                            f"Failed to verify table '{check_table}' existence due to error: {e}"
+                        )
                 # Optional: send success email if explicitly requested via env flag
                 if os.getenv('SEND_SUCCESS_EMAIL') == '1':
                     send_alert_email(
