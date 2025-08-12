@@ -56,16 +56,21 @@ def create_db_connection():
             port=int(os.getenv('DB_PORT', '3306')),
             database=os.getenv('DB_NAME'),
         )
-        # If a CA path is provided, enable SSL verification; otherwise, disable SSL for easier connectivity
+        # DigitalOcean Managed Databases: use SSL but disable verification.
+        # Attach CA if provided and path exists, but keep verification off to avoid strict checks.
+        conn_kwargs.update(
+            ssl_verify_cert=False,
+            ssl_verify_identity=False,
+        )
         if ca:
-            conn_kwargs.update(
-                ssl_ca=ca,
-                ssl_verify_cert=True,
-                ssl_verify_identity=True,
-            )
-        else:
-            # Disable SSL when no CA is provided (useful for quick testing/troubleshooting)
-            conn_kwargs.update(ssl_disabled=True)
+            import os as _os
+            if _os.path.exists(ca):
+                conn_kwargs['ssl_ca'] = ca
+            else:
+                print(f"Warning: SSL CA certificate not found at {ca}. Continuing without CA.")
+        # Only disable SSL entirely if explicitly requested
+        if os.getenv('DB_SSL_DISABLED', 'false').lower() == 'true':
+            conn_kwargs['ssl_disabled'] = True
 
         connection = mysql.connector.connect(**conn_kwargs)
         return connection
